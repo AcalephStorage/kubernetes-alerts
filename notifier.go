@@ -1,41 +1,94 @@
 package main
 
 import (
+	"sync"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 )
 
 type Notifier interface {
-	Notify(check KubeCheck) error
+	Notify(checks []KubeCheck) bool
 }
 
 type NotifManager struct {
-	NotifChannel  chan KubeCheck
-	notifInterval time.Duration
-	Notifiers     []Notifier
-	stopChannel   chan bool
-	Checks        []KubeCheck
+	NotifInterval      time.Duration
+	Notifiers          []Notifier
+	notifChannel       chan KubeCheck
+	stopChannel        chan bool
+	checks             []KubeCheck
+	addCheckWaitGroup  sync.WaitGroup
+	sendNotifWaitGroup sync.WaitGroup
 }
 
 func (n *NotifManager) Start() {
+	logrus.Info("Starting notif manager...")
+	n.notifChannel = make(chan KubeCheck, 10)
 	n.stopChannel = make(chan bool)
-	// n.Checks = make([]KubeCheck, )
+	n.checks = make([]KubeCheck, 0)
+	go n.listenForNotif()
 }
 
 func (n *NotifManager) Stop() {
+	n.stopChannel <- true
+	close(n.stopChannel)
+	close(n.notifChannel)
+}
+
+func (n *NotifManager) listenForNotif() {
 	running := true
 	for running {
 		select {
 		case <-n.stopChannel:
 			running = false
-			break
-		case <-time.After(n.notifInterval):
+		case <-time.After(n.NotifInterval):
+			logrus.Info("trying to send notif")
+			n.addCheckWaitGroup.Wait()
+			n.sendNotifWaitGroup.Add(1)
 			n.sendNotifications()
-		case <-n.NotifChannel:
-
+			n.sendNotifWaitGroup.Done()
+			logrus.Info("finally sent them")
+		case check := <-n.notifChannel:
+			logrus.Info("Adding notif now.")
+			n.sendNotifWaitGroup.Wait()
+			n.addCheckWaitGroup.Add(1)
+			n.checks = append(n.checks, check)
+			n.addCheckWaitGroup.Done()
+			logrus.Info("successfully added notif.")
 		}
 	}
 }
 
-func (n *NotifManager) sendNotifications() {
+func (n *NotifManager) addNotification(check KubeCheck) {
+	logrus.Info("Adding new check for notification...")
+	n.notifChannel <- check
+}
 
+func (n *NotifManager) sendNotifications() {
+	if len(n.checks) > 0 {
+		logrus.Info("Sending notifications")
+		for _, notifier := range n.Notifiers {
+			notifier.Notify(n.checks)
+		}
+		n.checks = make([]KubeCheck, 0)
+	}
+}
+
+func NotifSummary(checks []KubeCheck) (overall CheckStatus, pass, warn, fail int) {
+	overall = CheckStatusPass
+	for _, check := range checks {
+		switch check.Status {
+		case CheckStatusPass:
+			pass++
+		case CheckStatusWarn:
+			warn++
+			if overall != CheckStatusFail {
+				overall = CheckStatusWarn
+			}
+		case CheckStatusFail:
+			fail++
+			overall = CheckStatusFail
+		}
+	}
+	return
 }

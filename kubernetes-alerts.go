@@ -3,9 +3,12 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/libkv/store"
+	"github.com/docker/libkv/store/etcd"
 )
 
 const (
@@ -29,8 +32,8 @@ type CheckStatus string
 
 type KubeCheck struct {
 	Name       string            `json:"name"`
-	CheckGroup KubeCheckGroup    `json:"checkGroup"`
-	CheckType  KubeCheckType     `json:"checkType"`
+	CheckGroup KubeCheckGroup    `json:"checkGroup,string"`
+	CheckType  KubeCheckType     `json:"checkType,string"`
 	Status     CheckStatus       `json:"status"`
 	Message    string            `json:"message"`
 	Timestamp  time.Time         `json:"timestamp"`
@@ -38,12 +41,20 @@ type KubeCheck struct {
 }
 
 func main() {
-	logrus.SetLevel(logrus.DebugLevel)
+	// logrus.SetLevel(logrus.DebugLevel)
 
 	kubernetes := &KubernetesApi{ApiClient: &ApiClient{}}
 	heapster := &HeapsterModelApi{ApiClient: &ApiClient{}}
-	etcd := &EtcdApi{ApiClient: &ApiClient{}}
-	parseFlags(kubernetes, heapster, etcd)
+	kv := &KVClient{}
+	slack := &SlackNotifier{Detailed: true}
+
+	notifManager := &NotifManager{
+		NotifInterval: 1 * time.Minute,
+		Notifiers:     []Notifier{slack},
+	}
+
+	parseFlags(kubernetes, heapster, kv, slack)
+	initLibKV()
 
 	if err := kubernetes.prepareClient(); err != nil {
 		logrus.WithError(err).Error("unable to create kubernetes client")
@@ -55,27 +66,31 @@ func main() {
 		os.Exit(-1)
 	}
 
-	if err := etcd.prepareClient(); err != nil {
-		logrus.WithError(err).Error("unable to create etcd client")
+	if err := kv.prepareClient(); err != nil {
+		logrus.WithError(err).Error("unable to create kv client")
 		os.Exit(-1)
 	}
 
 	nodeChecker := &NodeChecker{
 		KubernetesApi:    kubernetes,
 		HeapsterModelApi: heapster,
-		EtcdApi:          etcd,
+		KVClient:         kv,
+		NotifManager:     notifManager,
 		CheckInterval:    5 * time.Second,
 		Threshold:        1 * time.Minute,
 	}
 
 	logrus.Info("Starting kube-alerts...")
 
+	notifManager.Start()
 	nodeChecker.start()
 
 	nodeChecker.RunWaitGroup.Wait()
+
+	// clean up aka stop all services
 }
 
-func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, etcd *EtcdApi) {
+func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVClient, slack *SlackNotifier) {
 	flag.StringVar(&kubernetes.apiBaseUrl, "k8s-api", "", "Kubernetes API Base URL")
 	flag.StringVar(&kubernetes.certificateAuthority, "k8s-certificate-authority", "", "Kubernetes Certificate Authority")
 	flag.StringVar(&kubernetes.clientCertificate, "k8s-client-certificate", "", "Kubernetes Client Certificate")
@@ -86,9 +101,28 @@ func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, etcd *Etc
 	flag.StringVar(&heapster.clientCertificate, "heapster-client-certificate", "", "Heapster Client Certificate")
 	flag.StringVar(&heapster.clientKey, "heapster-client-key", "", "Heapster Client Key")
 	flag.StringVar(&heapster.token, "heapster-token", "", "Heapster Token")
-	flag.StringVar(&etcd.apiBaseUrl, "etcd-api", "", "Etcd API Base URL")
-	flag.StringVar(&etcd.certificateAuthority, "etcd-certificate-authority", "", "Etcd Certificate Authority")
-	flag.StringVar(&etcd.clientCertificate, "etcd-client-certificate", "", "Etcd Client Certificate")
-	flag.StringVar(&etcd.clientKey, "etcd-client-key", "", "Etcd Client Key")
+	flag.StringVar(&kv.certificateAuthority, "kv-certificate-authority", "", "KV Certificate Authority")
+	flag.StringVar(&kv.clientCertificate, "kv-client-certificate", "", "KV Client Certificate")
+	flag.StringVar(&kv.clientKey, "kv-client-key", "", "KV Client Key")
+	flag.StringVar(&slack.ClusterName, "slack-cluster-name", "", "Cluster name to display on slack notifications")
+	flag.StringVar(&slack.Url, "slack-url", "", "The slack URL for notification")
+	flag.StringVar(&slack.Username, "slack-username", "kube-alerts", "The slack username")
+	addresses := flag.String("kv-addresses", "", "addresses for the KV store")
+	backend := flag.String("kv-backend", "", "KV Store Backend. Can be etcd, consul, zk, boltdb")
 	flag.Parse()
+	kv.addresses = strings.Split(*addresses, ",")
+	switch *backend {
+	case "etcd":
+		kv.backend = store.ETCD
+	case "consul":
+		kv.backend = store.CONSUL
+	case "zk":
+		kv.backend = store.ZK
+	case "boltdb":
+		kv.backend = store.BOLTDB
+	}
+}
+
+func initLibKV() {
+	etcd.Register()
 }

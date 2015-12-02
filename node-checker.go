@@ -20,7 +20,8 @@ const (
 type NodeChecker struct {
 	*KubernetesApi
 	*HeapsterModelApi
-	*EtcdApi
+	*KVClient
+	*NotifManager
 	RunWaitGroup  sync.WaitGroup
 	CheckInterval time.Duration
 	stopChannel   chan bool
@@ -60,30 +61,34 @@ func (n *NodeChecker) processNodeCheck() {
 		return
 	}
 	n.processNodeCheckReady(nodes)
+	// process Node OOD
+	// ...
 }
 
 func (n *NodeChecker) processNodeCheckReady(nodes []Node) {
+	logrus.Info("Checking Node Readiness...")
 	for _, node := range nodes {
 		ready := false
 		passThreshold := false
-		message := ""
 		for _, condition := range node.Status.Conditions {
 			if condition.Type == ConditionTypeReady {
 				ready = condition.Status == "True"
 				duration := time.Since(condition.LastTransitionTime)
-				passThreshold = duration > n.Threshold
-				message = condition.Message
+				passThreshold = duration >= n.Threshold
 			}
 		}
 
 		// node readiness may have changed
 		if passThreshold {
 
+			var message string
 			var status CheckStatus
 			if ready {
 				status = CheckStatusPass
+				message = node.Metadata.Name + " is Ready"
 			} else {
 				status = CheckStatusFail
+				message = node.Metadata.Name + " is NOT Ready"
 			}
 
 			check := KubeCheck{
@@ -96,31 +101,38 @@ func (n *NodeChecker) processNodeCheckReady(nodes []Node) {
 				Labels:     node.Metadata.Labels,
 			}
 
-			exists := n.checkExists(check)
+			exists, err := n.checkExists(check)
+			if err != nil {
+				logrus.WithError(err).Error("unable to determine if check exists or not")
+				continue
+			}
 			if !exists {
-				err := n.EtcdApi.saveCheck(check)
+				logrus.Infof("check %s is not in the record. recoding now", check.Name)
+				err := n.saveCheck(check)
 				if err != nil {
-					logrus.WithError(err).Warnf("Unable to save")
+					logrus.WithError(err).Warnf("Unable to save check")
 					continue
 				}
 				if check.Status == CheckStatusFail {
-					// send notification if failed status
+					logrus.Infof("check %s is new and failing, will notify", check.Name)
+					n.addNotification(check)
 				}
 			} else {
-				oldCheck, err := n.EtcdApi.getCheck(check.CheckGroup, check.CheckType, check.Name)
+				oldCheck, err := n.getCheck(check.CheckGroup, check.CheckType, check.Name)
 				if err != nil {
 					logrus.WithError(err).Warnf("unable to get previous check, can't proceed")
 					continue
 				}
+				logrus.Printf("old: %s, new: %s", oldCheck.Status, check.Status)
 				if check.Status != oldCheck.Status {
+					logrus.Info("check %s status has changed, will notify", check.Name)
 					logrus.Infof("status for %s:%s:%s has changed.", check.CheckGroup, check.CheckType, check.Name)
-					// send notification since status has changed
-					err := n.EtcdApi.saveCheck(check)
+					err := n.saveCheck(check)
 					if err != nil {
 						logrus.WithError(err).Warnf("Unable to save")
 						continue
 					}
-					// send notif here
+					n.addNotification(check)
 				} else {
 					logrus.Info("nothing has changed.")
 				}

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"encoding/json"
+
+	"github.com/Sirupsen/logrus"
 )
 
 func toTime(str string) (time.Time, error) {
@@ -16,6 +18,7 @@ func toTime(str string) (time.Time, error) {
 func toReader(data interface{}) (io.Reader, error) {
 	b, err := json.Marshal(data)
 	if err != nil {
+		logrus.Error("error marshalling data")
 		return nil, err
 	}
 	return bytes.NewReader(b), nil

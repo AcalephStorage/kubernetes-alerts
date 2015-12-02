@@ -83,7 +83,6 @@ func (a *ApiClient) GetRequest(path string, resData interface{}) error {
 	if err != nil {
 		return err
 	}
-	logrus.Debug("data", string(body))
 	err = json.Unmarshal(body, resData)
 	if err != nil {
 		return err
@@ -107,16 +106,18 @@ func (a *ApiClient) PostRequest(path string, data io.Reader) error {
 		return err
 	}
 	defer res.Body.Close()
-	if res.StatusCode != http.StatusCreated {
-		return errors.New("unable to create resource")
+	if res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusOK {
+		return nil
 	}
-	return nil
+	return errors.New(res.Status)
 }
 
-func (a *ApiClient) PutRequest(path string, data io.Reader) error {
+func (a *ApiClient) PutRequest(path, data string) error {
 	endpoint := a.apiBaseUrl + path
-	logrus.Debug("posting", endpoint)
-	req, err := http.NewRequest("POST", endpoint, data)
+	logrus.Info("putting: ", endpoint)
+	req, err := http.NewRequest("PUT", endpoint, nil)
+	req.PostForm["value"] = []string{data}
+
 	if err != nil {
 		return err
 	}
@@ -128,8 +129,9 @@ func (a *ApiClient) PutRequest(path string, data io.Reader) error {
 		return err
 	}
 	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return errors.New("unable to create resource")
+	logrus.Println(res.StatusCode)
+	if res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusOK {
+		return nil
 	}
-	return nil
+	return errors.New(res.Status)
 }
