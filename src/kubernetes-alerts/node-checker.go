@@ -61,6 +61,7 @@ func (n *NodeChecker) processNodeCheck() {
 		return
 	}
 	n.processNodeCheckReady(nodes)
+	n.processNodeOutOfDisk(nodes)
 	// process Node OOD
 	// ...
 }
@@ -101,43 +102,89 @@ func (n *NodeChecker) processNodeCheckReady(nodes []Node) {
 				Labels:     node.Metadata.Labels,
 			}
 
-			exists, err := n.checkExists(check)
-			if err != nil {
-				logrus.WithError(err).Error("unable to determine if check exists or not")
-				continue
-			}
-			if !exists {
-				logrus.Infof("check %s is not in the record. recoding now", check.Name)
-				err := n.saveCheck(check)
-				if err != nil {
-					logrus.WithError(err).Warnf("Unable to save check")
-					continue
-				}
-				if check.Status == CheckStatusFail {
-					logrus.Infof("check %s is new and failing, will notify", check.Name)
-					n.addNotification(check)
-				}
-			} else {
-				oldCheck, err := n.getCheck(check.CheckGroup, check.CheckType, check.Name)
-				if err != nil {
-					logrus.WithError(err).Warnf("unable to get previous check, can't proceed")
-					continue
-				}
-				logrus.Printf("old: %s, new: %s", oldCheck.Status, check.Status)
-				if check.Status != oldCheck.Status {
-					logrus.Info("check %s status has changed, will notify", check.Name)
-					logrus.Infof("status for %s:%s:%s has changed.", check.CheckGroup, check.CheckType, check.Name)
-					err := n.saveCheck(check)
-					if err != nil {
-						logrus.WithError(err).Warnf("Unable to save")
-						continue
-					}
-					n.addNotification(check)
-				} else {
-					logrus.Info("nothing has changed.")
-				}
+			n.processCheck(check)
+		}
+
+	}
+}
+
+func (n *NodeChecker) processNodeOutOfDisk(nodes []Node) {
+	logrus.Info("Checking Node Disk Space...")
+	for _, node := range nodes {
+		ok := false
+		passThreshold := false
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == ConditionTypeOutOfDisk {
+				ok = condition.Status == "False"
+				duration := time.Since(condition.LastTransitionTime)
+				passThreshold = duration >= n.Threshold
 			}
 		}
 
+		// node ood may have changed
+		if passThreshold {
+
+			var message string
+			var status CheckStatus
+			if ok {
+				status = CheckStatusPass
+				message = node.Metadata.Name + " has sufficient disk space"
+			} else {
+				status = CheckStatusFail
+				message = node.Metadata.Name + " is running out of disk space"
+			}
+
+			check := KubeCheck{
+				Name:       node.Metadata.Name,
+				CheckGroup: CheckGroupNode,
+				CheckType:  CheckTypeNodeOutOfDisk,
+				Status:     status,
+				Message:    message,
+				Timestamp:  time.Now(),
+				Labels:     node.Metadata.Labels,
+			}
+
+			n.processCheck(check)
+		}
+
+	}
+}
+
+func (n *NodeChecker) processCheck(check KubeCheck) {
+	exists, err := n.checkExists(check)
+	if err != nil {
+		logrus.WithError(err).Error("unable to determine if check exists or not")
+		return
+	}
+	if !exists {
+		logrus.Infof("check %s is not in the record. recoding now", check.Name)
+		err := n.saveCheck(check)
+		if err != nil {
+			logrus.WithError(err).Warnf("Unable to save check")
+			return
+		}
+		if check.Status == CheckStatusFail {
+			logrus.Infof("check %s is new and failing, will notify", check.Name)
+			n.addNotification(check)
+		}
+	} else {
+		oldCheck, err := n.getCheck(check.CheckGroup, check.CheckType, check.Name)
+		if err != nil {
+			logrus.WithError(err).Warnf("unable to get previous check, can't proceed")
+			return
+		}
+		logrus.Printf("old: %s, new: %s", oldCheck.Status, check.Status)
+		if check.Status != oldCheck.Status {
+			logrus.Info("check %s status has changed, will notify", check.Name)
+			logrus.Infof("status for %s:%s:%s has changed.", check.CheckGroup, check.CheckType, check.Name)
+			err := n.saveCheck(check)
+			if err != nil {
+				logrus.WithError(err).Warnf("Unable to save")
+				return
+			}
+			n.addNotification(check)
+		} else {
+			logrus.Info("nothing has changed.")
+		}
 	}
 }
