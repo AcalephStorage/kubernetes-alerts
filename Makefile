@@ -10,11 +10,11 @@ format:
 	@echo "--> Formatting source code"
 	@go fmt ./...
 
-test: format
-	@echo "--> Testing application"
-	@gb test ...
+# test: format
+# 	@echo "--> Testing application"
+# 	@gb test ...
 
-build: test
+build: format
 	@echo "--> Building all application"
 	@gb build ...
 	@mv bin/kubernetes-alerts bin/${APP_NAME}
