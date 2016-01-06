@@ -13,6 +13,7 @@ import (
 )
 
 type SlackNotifier struct {
+	Enabled     bool         `json:"-"`
 	ClusterName string       `json:"-"`
 	Url         string       `json:"-"`
 	Channel     string       `json:"channel"`

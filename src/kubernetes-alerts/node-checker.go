@@ -94,6 +94,7 @@ func (n *NodeChecker) processNodeCheckReady(nodes []Node) {
 
 			check := KubeCheck{
 				Name:       node.Metadata.Name,
+				Node:       node.Metadata.Name,
 				CheckGroup: CheckGroupNode,
 				CheckType:  CheckTypeNodeReady,
 				Status:     status,
@@ -136,6 +137,7 @@ func (n *NodeChecker) processNodeOutOfDisk(nodes []Node) {
 
 			check := KubeCheck{
 				Name:       node.Metadata.Name,
+				Node:       node.Metadata.Name,
 				CheckGroup: CheckGroupNode,
 				CheckType:  CheckTypeNodeOutOfDisk,
 				Status:     status,

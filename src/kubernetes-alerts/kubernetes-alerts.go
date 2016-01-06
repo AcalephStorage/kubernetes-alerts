@@ -32,6 +32,7 @@ type CheckStatus string
 
 type KubeCheck struct {
 	Name       string            `json:"name"`
+	Node       string            `json:"node"`
 	CheckGroup KubeCheckGroup    `json:"checkGroup,string"`
 	CheckType  KubeCheckType     `json:"checkType,string"`
 	Status     CheckStatus       `json:"status"`
@@ -47,13 +48,14 @@ func main() {
 	heapster := &HeapsterModelApi{ApiClient: &ApiClient{}}
 	kv := &KVClient{}
 	slack := &SlackNotifier{Detailed: true}
+	email := &EmailNotifier{}
 
 	notifManager := &NotifManager{
 		NotifInterval: 1 * time.Minute,
-		Notifiers:     []Notifier{slack},
+		Notifiers:     []Notifier{slack, email},
 	}
 
-	parseFlags(kubernetes, heapster, kv, slack)
+	parseFlags(kubernetes, heapster, kv, slack, email)
 	initLibKV()
 
 	if err := kubernetes.prepareClient(); err != nil {
@@ -90,7 +92,7 @@ func main() {
 	// clean up aka stop all services
 }
 
-func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVClient, slack *SlackNotifier) {
+func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVClient, slack *SlackNotifier, email *EmailNotifier) {
 	flag.StringVar(&kubernetes.apiBaseUrl, "k8s-api", "", "Kubernetes API Base URL")
 	flag.StringVar(&kubernetes.certificateAuthority, "k8s-certificate-authority", "", "Kubernetes Certificate Authority")
 	flag.StringVar(&kubernetes.clientCertificate, "k8s-client-certificate", "", "Kubernetes Client Certificate")
@@ -104,9 +106,25 @@ func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVCli
 	flag.StringVar(&kv.certificateAuthority, "kv-certificate-authority", "", "KV Certificate Authority")
 	flag.StringVar(&kv.clientCertificate, "kv-client-certificate", "", "KV Client Certificate")
 	flag.StringVar(&kv.clientKey, "kv-client-key", "", "KV Client Key")
+
+	flag.BoolVar(&slack.Enabled, "enable-slack", false, "Enable slack notifier")
 	flag.StringVar(&slack.ClusterName, "slack-cluster-name", "", "Cluster name to display on slack notifications")
 	flag.StringVar(&slack.Url, "slack-url", "", "The slack URL for notification")
 	flag.StringVar(&slack.Username, "slack-username", "kube-alerts", "The slack username")
+
+	flag.BoolVar(&email.Enabled, "enable-email", false, "Enable email notifier")
+	flag.StringVar(&email.ClusterName, "email-cluster-name", "kubernetes", "The name of the kubernetes cluster")
+	flag.StringVar(&email.Template, "email-template", "", "The email template file")
+	flag.StringVar(&email.Url, "email-url", "", "The smtp server URL")
+	flag.IntVar(&email.Port, "email-port", 0, "The smtp port")
+	flag.StringVar(&email.Username, "email-username", "", "The smtp username")
+	flag.StringVar(&email.Password, "email-password", "", "The smtp password")
+	flag.StringVar(&email.SenderAlias, "email-sender-alias", "kube-alerts", "The email sender alias")
+	flag.StringVar(&email.SenderEmail, "email-sender-email", "", "The email of the sender")
+
+	emailReceivers := flag.String("email-receivers", "", "Comma separated list of receiver's email")
+	email.Receivers = strings.Split(*emailReceivers, ",")
+
 	addresses := flag.String("kv-addresses", "", "addresses for the KV store")
 	backend := flag.String("kv-backend", "", "KV Store Backend. Can be etcd, consul, zk, boltdb")
 	flag.Parse()
