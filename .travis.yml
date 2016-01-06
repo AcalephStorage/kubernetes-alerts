@@ -7,6 +7,9 @@ env:
 
 install:
   - go get github.com/constabulary/gb/...
+  - gb vendor restore
+
+script: make build
 
 deploy:
   provider: releases
