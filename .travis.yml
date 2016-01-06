@@ -13,10 +13,9 @@ script: make build
 deploy:
   provider: releases
   api_key: "44023bd10779a5365764e4809513df11141ad4aa"
+  file_glob: true
   file:
-    - kube-alerts-linux-amd64
-    - kube-alerts-freebsd-amd64
-    - kube-alerts-darwin-amd64
+    - bin/kube-alerts*
   skip_cleanup: true
   on:
     tags: true
