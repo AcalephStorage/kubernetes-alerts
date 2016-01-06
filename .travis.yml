@@ -12,7 +12,7 @@ script: make build
 
 deploy:
   provider: releases
-  api_key: "44023bd10779a5365764e4809513df11141ad4aa"
+  api_key: "e80b88c33b8b268960ef764122808fb506aeec43"
   file_glob: true
   file:
     - bin/kube-alerts*
