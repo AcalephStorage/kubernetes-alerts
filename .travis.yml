@@ -4,11 +4,11 @@ go:
 install:
   - go get github.com/constabulary/gb/...
 script: 
-  - make build 
+  - make clean deps build 
 before_deploy:
-  - GOARCH=arm GOOS=linux make build
-  - GOARCH=386 GOOS=linux make build
-  - GOARCH=amd64 GOOS=linux make build
+  - GOARCH=arm GOOS=linux make deps build
+  - GOARCH=386 GOOS=linux make deps build
+  - GOARCH=amd64 GOOS=linux make deps build
 
 deploy:
   provider: releases
