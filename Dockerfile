@@ -10,4 +10,4 @@ RUN gb build
 
 EXPOSE 9000
 CMD []
-ENTRYPOINT [ "bin/kube-alerts" ]
+ENTRYPOINT [ "/kube-alerts/bin/kubernetes-alerts" ]
