@@ -83,6 +83,10 @@ func (email *EmailNotifier) Notify(checks []KubeCheck) bool {
 
 }
 
+func (email *EmailNotifier) NotifEnabled() bool {
+	return email.Enabled
+}
+
 func mapByNodes(checks []KubeCheck) map[string][]KubeCheck {
 	nodeMap := make(map[string][]KubeCheck)
 	for _, check := range checks {

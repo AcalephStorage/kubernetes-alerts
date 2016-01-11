@@ -9,6 +9,7 @@ import (
 
 type Notifier interface {
 	Notify(checks []KubeCheck) bool
+	NotifEnabled() bool
 }
 
 type NotifManager struct {
@@ -64,7 +65,9 @@ func (n *NotifManager) addNotification(check KubeCheck) {
 func (n *NotifManager) sendNotifications() {
 	if len(n.checks) > 0 {
 		for _, notifier := range n.Notifiers {
-			notifier.Notify(n.checks)
+			if notifier.NotifEnabled() {
+				notifier.Notify(n.checks)
+			}
 		}
 		n.checks = make([]KubeCheck, 0)
 	}

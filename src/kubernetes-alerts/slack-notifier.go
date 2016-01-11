@@ -44,6 +44,10 @@ func (slack *SlackNotifier) Notify(checks []KubeCheck) bool {
 
 }
 
+func (slack *SlackNotifier) NotifEnabled() bool {
+	return slack.Enabled
+}
+
 func (slack *SlackNotifier) notifySimple(checks []KubeCheck) bool {
 
 	_, pass, warn, fail := NotifSummary(checks)
