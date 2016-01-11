@@ -51,11 +51,18 @@ func main() {
 	email := &EmailNotifier{}
 
 	notifManager := &NotifManager{
-		NotifInterval: 1 * time.Minute,
-		Notifiers:     []Notifier{slack, email},
+		Notifiers: []Notifier{slack, email},
 	}
 
-	parseFlags(kubernetes, heapster, kv, slack, email)
+	nodeChecker := &NodeChecker{
+		KubernetesApi:    kubernetes,
+		HeapsterModelApi: heapster,
+		KVClient:         kv,
+		NotifManager:     notifManager,
+	}
+
+	// need better way for configuring this...
+	parseFlags(kubernetes, heapster, kv, notifManager, nodeChecker, slack, email)
 	initLibKV()
 
 	if err := kubernetes.prepareClient(); err != nil {
@@ -73,15 +80,6 @@ func main() {
 		os.Exit(-1)
 	}
 
-	nodeChecker := &NodeChecker{
-		KubernetesApi:    kubernetes,
-		HeapsterModelApi: heapster,
-		KVClient:         kv,
-		NotifManager:     notifManager,
-		CheckInterval:    5 * time.Second,
-		Threshold:        1 * time.Minute,
-	}
-
 	logrus.Info("Starting kube-alerts...")
 
 	notifManager.Start()
@@ -92,20 +90,27 @@ func main() {
 	// clean up aka stop all services
 }
 
-func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVClient, slack *SlackNotifier, email *EmailNotifier) {
+func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVClient, notifManager *NotifManager, nodeChecker *NodeChecker, slack *SlackNotifier, email *EmailNotifier) {
 	flag.StringVar(&kubernetes.apiBaseUrl, "k8s-api", "", "Kubernetes API Base URL")
 	flag.StringVar(&kubernetes.certificateAuthority, "k8s-certificate-authority", "", "Kubernetes Certificate Authority")
 	flag.StringVar(&kubernetes.clientCertificate, "k8s-client-certificate", "", "Kubernetes Client Certificate")
 	flag.StringVar(&kubernetes.clientKey, "k8s-client-key", "", "Kubernetes Client Key")
 	flag.StringVar(&kubernetes.token, "k8s-token", "", "Kubernetes Token")
+
 	flag.StringVar(&heapster.apiBaseUrl, "heapster-api", "", "Heapster API Base URL")
 	flag.StringVar(&heapster.certificateAuthority, "heapster-certificate-authority", "", "Heapster Certificate Authority")
 	flag.StringVar(&heapster.clientCertificate, "heapster-client-certificate", "", "Heapster Client Certificate")
 	flag.StringVar(&heapster.clientKey, "heapster-client-key", "", "Heapster Client Key")
 	flag.StringVar(&heapster.token, "heapster-token", "", "Heapster Token")
+
 	flag.StringVar(&kv.certificateAuthority, "kv-certificate-authority", "", "KV Certificate Authority")
 	flag.StringVar(&kv.clientCertificate, "kv-client-certificate", "", "KV Client Certificate")
 	flag.StringVar(&kv.clientKey, "kv-client-key", "", "KV Client Key")
+
+	notifIntervalSecs := flag.Int("notification-interval", 60, "the interval to wait before sending notifications (seconds)")
+
+	nodeCheckIntervalSecs := flag.Int("node-check-interval", 10, "interval in seconds before running node checks")
+	nodeCheckThresholdSecs := flag.Int("node-check-threshold", 60, "threshold before marking a node status as changed")
 
 	flag.BoolVar(&slack.Enabled, "enable-slack", false, "Enable slack notifier")
 	flag.StringVar(&slack.ClusterName, "slack-cluster-name", "", "Cluster name to display on slack notifications")
@@ -127,7 +132,9 @@ func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVCli
 
 	addresses := flag.String("kv-addresses", "", "addresses for the KV store")
 	backend := flag.String("kv-backend", "", "KV Store Backend. Can be etcd, consul, zk, boltdb")
+
 	flag.Parse()
+
 	kv.addresses = strings.Split(*addresses, ",")
 	switch *backend {
 	case "etcd":
@@ -139,6 +146,10 @@ func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVCli
 	case "boltdb":
 		kv.backend = store.BOLTDB
 	}
+
+	notifManager.NotifInterval = time.Duration(*notifIntervalSecs) * time.Second
+	nodeChecker.CheckInterval = time.Duration(*nodeCheckIntervalSecs) * time.Second
+	nodeChecker.Threshold = time.Duration(*nodeCheckThresholdSecs) * time.Second
 }
 
 func initLibKV() {
