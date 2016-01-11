@@ -78,7 +78,7 @@ func (email *EmailNotifier) Notify(checks []KubeCheck) bool {
 		logrus.WithError(err).Error("Unable to send notification.")
 		return false
 	}
-	logrus.Info("Email notification sent.")
+	logrus.Infof("Email notification sent.")
 	return true
 
 }

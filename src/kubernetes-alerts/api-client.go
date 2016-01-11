@@ -66,7 +66,7 @@ func (a *ApiClient) prepareClient() error {
 
 func (a *ApiClient) GetRequest(path string, resData interface{}) error {
 	endpoint := a.apiBaseUrl + path
-	logrus.Debug("requesting", endpoint)
+	logrus.Debugf("GET request to: %s", endpoint)
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return err
@@ -87,13 +87,13 @@ func (a *ApiClient) GetRequest(path string, resData interface{}) error {
 	if err != nil {
 		return err
 	}
-	logrus.Debug("Successful.")
+	logrus.Debug("Get request successful")
 	return nil
 }
 
 func (a *ApiClient) PostRequest(path string, data io.Reader) error {
 	endpoint := a.apiBaseUrl + path
-	logrus.Debug("posting", endpoint)
+	logrus.Debugf("POST request to: %s", endpoint)
 	req, err := http.NewRequest("POST", endpoint, data)
 	if err != nil {
 		return err
@@ -107,6 +107,7 @@ func (a *ApiClient) PostRequest(path string, data io.Reader) error {
 	}
 	defer res.Body.Close()
 	if res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusOK {
+		logrus.Debug("POST request successful.")
 		return nil
 	}
 	return errors.New(res.Status)
@@ -114,7 +115,7 @@ func (a *ApiClient) PostRequest(path string, data io.Reader) error {
 
 func (a *ApiClient) PutRequest(path, data string) error {
 	endpoint := a.apiBaseUrl + path
-	logrus.Info("putting: ", endpoint)
+	logrus.Debugf("PUT request to: %s", endpoint)
 	req, err := http.NewRequest("PUT", endpoint, nil)
 	req.PostForm["value"] = []string{data}
 
@@ -129,8 +130,8 @@ func (a *ApiClient) PutRequest(path, data string) error {
 		return err
 	}
 	defer res.Body.Close()
-	logrus.Println(res.StatusCode)
 	if res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusOK {
+		logrus.Debug("PUT request successful")
 		return nil
 	}
 	return errors.New(res.Status)

@@ -54,7 +54,7 @@ func (n *NodeChecker) run() {
 }
 
 func (n *NodeChecker) processNodeCheck() {
-	logrus.Info("Running Node Checks...")
+	logrus.Debug("Running Node Checks...")
 	nodes, err := n.Nodes()
 	if err != nil {
 		logrus.WithError(err).Error("Unable to retrieve nodes.")
@@ -67,7 +67,7 @@ func (n *NodeChecker) processNodeCheck() {
 }
 
 func (n *NodeChecker) processNodeCheckReady(nodes []Node) {
-	logrus.Info("Checking Node Readiness...")
+	logrus.Debug("Checking Node Readiness...")
 	for _, node := range nodes {
 		ready := false
 		passThreshold := false
@@ -110,7 +110,7 @@ func (n *NodeChecker) processNodeCheckReady(nodes []Node) {
 }
 
 func (n *NodeChecker) processNodeOutOfDisk(nodes []Node) {
-	logrus.Info("Checking Node Disk Space...")
+	logrus.Debug("Checking Node Disk Space...")
 	for _, node := range nodes {
 		ok := false
 		passThreshold := false
@@ -166,7 +166,7 @@ func (n *NodeChecker) processCheck(check KubeCheck) {
 			return
 		}
 		if check.Status == CheckStatusFail {
-			logrus.Infof("check %s is new and failing, will notify", check.Name)
+			logrus.Info("check %s is new and failing, will notify", check.Name)
 			n.addNotification(check)
 		}
 	} else {
@@ -177,16 +177,17 @@ func (n *NodeChecker) processCheck(check KubeCheck) {
 		}
 		logrus.Printf("old: %s, new: %s", oldCheck.Status, check.Status)
 		if check.Status != oldCheck.Status {
-			logrus.Info("check %s status has changed, will notify", check.Name)
-			logrus.Infof("status for %s:%s:%s has changed.", check.CheckGroup, check.CheckType, check.Name)
+			logrus.Debugf("check %s status has changed, will notify", check.Name)
+			logrus.Debugf("status for %s:%s:%s has changed.", check.CheckGroup, check.CheckType, check.Name)
 			err := n.saveCheck(check)
 			if err != nil {
 				logrus.WithError(err).Warnf("Unable to save")
 				return
 			}
+			logrus.Infof("check %s is failing, will notify", check.Name)
 			n.addNotification(check)
 		} else {
-			logrus.Info("nothing has changed.")
+			logrus.Debug("nothing has changed.")
 		}
 	}
 }

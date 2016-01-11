@@ -42,31 +42,27 @@ func (n *NotifManager) listenForNotif() {
 		case <-n.stopChannel:
 			running = false
 		case <-time.After(n.NotifInterval):
-			logrus.Info("trying to send notif")
+			logrus.Debug("Trying to send notifications...")
 			n.addCheckWaitGroup.Wait()
 			n.sendNotifWaitGroup.Add(1)
 			n.sendNotifications()
 			n.sendNotifWaitGroup.Done()
-			logrus.Info("finally sent them")
 		case check := <-n.notifChannel:
-			logrus.Info("Adding notif now.")
+			logrus.Debug("Adding check for notification...")
 			n.sendNotifWaitGroup.Wait()
 			n.addCheckWaitGroup.Add(1)
 			n.checks = append(n.checks, check)
 			n.addCheckWaitGroup.Done()
-			logrus.Info("successfully added notif.")
 		}
 	}
 }
 
 func (n *NotifManager) addNotification(check KubeCheck) {
-	logrus.Info("Adding new check for notification...")
 	n.notifChannel <- check
 }
 
 func (n *NotifManager) sendNotifications() {
 	if len(n.checks) > 0 {
-		logrus.Info("Sending notifications")
 		for _, notifier := range n.Notifiers {
 			notifier.Notify(n.checks)
 		}

@@ -42,7 +42,6 @@ type KubeCheck struct {
 }
 
 func main() {
-	// logrus.SetLevel(logrus.DebugLevel)
 
 	kubernetes := &KubernetesApi{ApiClient: &ApiClient{}}
 	heapster := &HeapsterModelApi{ApiClient: &ApiClient{}}
@@ -131,8 +130,9 @@ func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVCli
 	email.Receivers = strings.Split(*emailReceivers, ",")
 
 	addresses := flag.String("kv-addresses", "", "addresses for the KV store")
-	backend := flag.String("kv-backend", "", "KV Store Backend. Can be etcd, consul, zk, boltdb")
+	backend := flag.String("kv-backend", "", "KV Store Backend. Only etcd for now")
 
+	logLevel := flag.String("log-level", "info", "set the log level, valid values are [debug, info, warn, error, fatal, panic]")
 	flag.Parse()
 
 	kv.addresses = strings.Split(*addresses, ",")
@@ -150,6 +150,14 @@ func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVCli
 	notifManager.NotifInterval = time.Duration(*notifIntervalSecs) * time.Second
 	nodeChecker.CheckInterval = time.Duration(*nodeCheckIntervalSecs) * time.Second
 	nodeChecker.Threshold = time.Duration(*nodeCheckThresholdSecs) * time.Second
+
+	logrusLevel, err := logrus.ParseLevel(*logLevel)
+	if err != nil {
+		logrus.SetLevel(logrus.InfoLevel)
+	} else {
+		logrus.SetLevel(logrusLevel)
+	}
+
 }
 
 func initLibKV() {
