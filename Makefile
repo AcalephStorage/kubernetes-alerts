@@ -4,7 +4,7 @@ all: clean format deps build
 
 clean:
 	@echo "--> Cleaning build"
-	@rm -rf ./bin
+	@rm -rf ./bin ./tar ./pkg
 
 format:
 	@echo "--> Formatting source code"
@@ -21,6 +21,7 @@ deps:
 build: format
 	@echo "--> Building all application"
 	@gb build ...
-	@mv bin/kubernetes-alerts bin/${APP_NAME}
-	@tar cfz bin/${APP_NAME}-`uname -s | tr [A-Z] [a-z]`-amd64.tgz -C bin ${APP_NAME}
-	@rm bin/${APP_NAME}
+	@mkdir -p bin/`go env GOOS`/`go env GOARCH`
+	@mkdir -p tar
+	@mv bin/kubernetes-alerts bin/`go env GOOS`/`go env GOARCH`/${APP_NAME}
+	@tar cfz tar/${APP_NAME}-`go env GOOS`-`go env GOARCH`.tgz -C bin/`go env GOOS`/`go env GOARCH` ${APP_NAME}

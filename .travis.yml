@@ -14,7 +14,7 @@ deploy:
   provider: releases
   api_key:
     secure: "nt8Ny2r5lL5sF6osYMfVtSsS7TfRDWPynYtFiZqaDpvMMLpwg/HkBSeJye4yV4LB3/g31ahgJdq4AJEwlAAa/2t7YpkQTiBNSIW7Qsk+KjtlU0bXkZAivAfWuyWfACIThzfz7561TFoLolsZL8ZR8ezv+bNXLSZabWRENDps2OwQGEctp5tJvgNy7xyBCdhfEZhFA30Ot+NisS+xAF+HDgprgbdmFIJOHVvTl95AcHyEVquyjWwpzw8ZEp6C9Vn6WwWDpRb4+mmDxsGhIq1ehXlwvaeTh/mDQ8i/XAOqoulAHVPUNQzmWSkKCrBJVQoQs7vFnn88ZxeIWxohTEyusvTNiseNyWHVB2dXDieUB9aNW/YZGGAT5bBSEabMr9xruOkNkxv3JjeEfzNvwbLX+E8KY83yTx4/RhpWMEMdgBbmLOspOgPPdYJmn+iSlyNc7s+5bXxHsCfJSgiej/+A5XjB+lugLnCQcoyVq60CkrgS1H7itRXWGbR4SxJiEZnvgfZL29mQ6udF8tKvq6v4bJAL3eg+VX1M4wYfQZ892wzKqLSXafHdBfsRi1qT8pvyELoD4fZM/5pEhVAvcj7CrpKEpeQ8PQ4pdu1Gsmkvz+CRM5c1e8u0dQyH+Z9OVzUuvYx2oEdPK8FIz92a6iQMk7TZq8wvHB9QHQM54O463QY="
-  file: bin/*
+  file: tar/*
   file_glob: true
   on:
     repo: AcalephStorage/kubernetes-alerts
