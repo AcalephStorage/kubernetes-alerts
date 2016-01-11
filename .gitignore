@@ -26,4 +26,5 @@ _testmain.go
 /kubernetes-alerts
 /pkg
 /bin
+/tar
 vendor/src

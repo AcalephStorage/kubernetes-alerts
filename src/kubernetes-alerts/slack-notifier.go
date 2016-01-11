@@ -44,6 +44,10 @@ func (slack *SlackNotifier) Notify(checks []KubeCheck) bool {
 
 }
 
+func (slack *SlackNotifier) NotifEnabled() bool {
+	return slack.Enabled
+}
+
 func (slack *SlackNotifier) notifySimple(checks []KubeCheck) bool {
 
 	_, pass, warn, fail := NotifSummary(checks)
@@ -129,26 +133,25 @@ func (slack *SlackNotifier) notifyDetailed(checks []KubeCheck) bool {
 func (slack *SlackNotifier) postToSlack() bool {
 
 	data, err := json.Marshal(slack)
-	logrus.Println(string(data))
 	if err != nil {
-		logrus.Println("Unable to marshal slack payload:", err)
+		logrus.WithError(err).Error("Unable to marshal slack payload")
 		return false
 	}
 	logrus.Debugf("struct = %+v, json = %s", slack, string(data))
 
 	b := bytes.NewBuffer(data)
 	if res, err := http.Post(slack.Url, "application/json", b); err != nil {
-		logrus.Println("Unable to send data to slack:", err)
+		logrus.WithError(err).Error("Unable to send data to slack")
 		return false
 	} else {
 		defer res.Body.Close()
 		statusCode := res.StatusCode
 		if statusCode != 200 {
 			body, _ := ioutil.ReadAll(res.Body)
-			logrus.Println("Unable to notify slack:", string(body))
+			logrus.Error("Unable to notify slack:", string(body))
 			return false
 		} else {
-			logrus.Println("Slack notification sent.")
+			logrus.Info("Slack notification sent.")
 			return true
 		}
 	}

@@ -78,9 +78,13 @@ func (email *EmailNotifier) Notify(checks []KubeCheck) bool {
 		logrus.WithError(err).Error("Unable to send notification.")
 		return false
 	}
-	logrus.Info("Email notification sent.")
+	logrus.Infof("Email notification sent.")
 	return true
 
+}
+
+func (email *EmailNotifier) NotifEnabled() bool {
+	return email.Enabled
 }
 
 func mapByNodes(checks []KubeCheck) map[string][]KubeCheck {
