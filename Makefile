@@ -23,6 +23,6 @@ build: format
 	@gb build ...
 	@mkdir -p bin/`go env GOOS`/`go env GOARCH`
 	@mkdir -p tar
-	@if [[ -a bin/kubernetes-alerts-`go env GOOS`-`go env GOARCH` ]]; then mv bin/kubernetes-alerts-`go env GOOS`-`go env GOARCH` bin/`go env GOOS`/`go env GOARCH`/${APP_NAME}; fi;
-	@if [[ -a bin/kubernetes-alerts ]]; then mv bin/kubernetes-alerts bin/`go env GOOS`/`go env GOARCH`/${APP_NAME}; fi;
+	@if [ -a bin/kubernetes-alerts-`go env GOOS`-`go env GOARCH` ]; then mv bin/kubernetes-alerts-`go env GOOS`-`go env GOARCH` bin/`go env GOOS`/`go env GOARCH`/${APP_NAME}; fi;
+	@if [ -a bin/kubernetes-alerts ]; then mv bin/kubernetes-alerts bin/`go env GOOS`/`go env GOARCH`/${APP_NAME}; fi;
 	@tar cfz tar/${APP_NAME}-`go env GOOS`-`go env GOARCH`.tgz -C bin/`go env GOOS`/`go env GOARCH` ${APP_NAME}
