@@ -1,6 +1,6 @@
 APP_NAME = kube-alerts
 
-all: build
+all: clean format deps build
 
 clean:
 	@echo "--> Cleaning build"
@@ -18,7 +18,7 @@ deps:
 # 	@echo "--> Testing application"
 # 	@gb test ...
 
-build: format deps
+build: format
 	@echo "--> Building all application"
 	@gb build ...
 	@mv bin/kubernetes-alerts bin/${APP_NAME}
