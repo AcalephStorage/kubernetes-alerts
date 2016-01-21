@@ -8,7 +8,9 @@ build:
   environment:
     - GO15VENDOREXPERIMENT=1
   commands:
-    - make deps build
+    - go get github.com/constabulary/gb/...
+    - gb vendor restore
+    - gb build
 
 publish:
   docker:
