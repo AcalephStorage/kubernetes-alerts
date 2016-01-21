@@ -1,0 +1,23 @@
+
+debug: true
+clone:
+  path: github.com/drone/drone
+
+build:
+  image: drone/golang:1.5
+  environment:
+    - GO15VENDOREXPERIMENT=1
+  commands:
+    - make deps build
+
+publish:
+  docker:
+    environment:
+      - DOCKER_LAUNCH_DEBUG=true
+    registry: quay.io/v1
+    username: $$QUAY_USERNAME
+    password: $$QUAY_PASSWORD
+    email: $$QUAY_EMAIL
+    repo: acaleph/kube-alerts
+    storage_driver: overlay
+    file: Dockerfile
