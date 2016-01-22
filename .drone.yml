@@ -14,8 +14,6 @@ build:
 
 publish:
   docker:
-    environment:
-      - DOCKER_LAUNCH_DEBUG=true
     registry: quay.io/v1
     username: $$QUAY_USERNAME
     password: $$QUAY_PASSWORD
