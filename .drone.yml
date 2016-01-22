@@ -20,6 +20,6 @@ publish:
     username: $$QUAY_USERNAME
     password: $$QUAY_PASSWORD
     email: $$QUAY_EMAIL
-    repo: acaleph/kube-alerts
-    storage_driver: vfs
+    repo: quay.io/acaleph/kube-alerts
+    storage_driver: overlay
     file: Dockerfile
