@@ -79,13 +79,14 @@ kube-alerts requires to connect to Kubernetes, Heapster, and ETCD. Here are the 
 
 #### Kubernetes flags
 
-| flag                       | description                                     | example                           |
-|----------------------------|-------------------------------------------------|-----------------------------------|
-| -k8s-api                   | the base url for the Kubernetes API             | https://localhost/api/v1          |
-| -k8s-certificate-authority | the certificate authority of the Kubernetes API | /etc/kubernetes/ssl/ca.pem        |
-| -k8s-client-certificate    | the client certificate for authentication       | /etc/kubernetes/ssl/admin.pem     |
-| -k8s-client-key            | the client key for authentication               | /etc/kubernetes/ssl/admin-key.pem |
-| -k8s-token                 | the token for authentication                    | F0XBLTDaL3xDlBsq5YKAFIH7yzZNBhs6  |
+| flag                       | description                                                                              | example                           |
+|----------------------------|------------------------------------------------------------------------------------------|-----------------------------------|
+| -k8s-api                   | the base url for the Kubernetes API                                                      | https://localhost/api/v1          |
+| -k8s-certificate-authority | the certificate authority of the Kubernetes API                                          | /etc/kubernetes/ssl/ca.pem        |
+| -k8s-client-certificate    | the client certificate for authentication                                                | /etc/kubernetes/ssl/admin.pem     |
+| -k8s-client-key            | the client key for authentication                                                        | /etc/kubernetes/ssl/admin-key.pem |
+| -k8s-token                 | the token for authentication                                                             | F0XBLTDaL3xDlBsq5YKAFIH7yzZNBhs6  |
+| -k8s-token-file            | the file where token is stored. This flag is only considered if `-k8s-token` is not used | /path/to/token                    |
 
 #### Heapster flags
 
@@ -103,7 +104,7 @@ Note: Heapster can be accessed via Kubernetes. The heapster flag may change (not
 
 | flag                      | description                                        | example                      |
 |---------------------------|----------------------------------------------------|------------------------------|
-| -kv-addresses             | comma separated addresses for the KV store         | https://localhost:2379       |
+| -kv-addresses             | comma separated addresses for the KV store         | localhost:2379               |
 | -kv-backend               | the KV store backend (only etcd supported for now) | etcd                         |
 | -kv-certificate-authority | the certificate authority of the KV store          | /etc/etcd/ssl/ca.pem         |
 | -kv-client-certificate    | the client certificate for authentication          | /etc/etcd/ssl/client.pem     |
