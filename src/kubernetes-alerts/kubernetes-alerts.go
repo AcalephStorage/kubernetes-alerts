@@ -95,6 +95,7 @@ func parseFlags(kubernetes *KubernetesApi, heapster *HeapsterModelApi, kv *KVCli
 	flag.StringVar(&kubernetes.clientCertificate, "k8s-client-certificate", "", "Kubernetes Client Certificate")
 	flag.StringVar(&kubernetes.clientKey, "k8s-client-key", "", "Kubernetes Client Key")
 	flag.StringVar(&kubernetes.token, "k8s-token", "", "Kubernetes Token")
+	flag.StringVar(&kubernetes.tokenFile, "k8s-token-file", "", "Kubernetes Token File")
 
 	flag.StringVar(&heapster.apiBaseUrl, "heapster-api", "", "Heapster API Base URL")
 	flag.StringVar(&heapster.certificateAuthority, "heapster-certificate-authority", "", "Heapster Certificate Authority")

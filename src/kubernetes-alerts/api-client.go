@@ -21,6 +21,7 @@ type ApiClient struct {
 	clientCertificate    string
 	clientKey            string
 	token                string
+	tokenFile            string
 }
 
 func (a *ApiClient) prepareClient() error {
@@ -61,6 +62,15 @@ func (a *ApiClient) prepareClient() error {
 	} else {
 		a.Client = &http.Client{}
 	}
+
+	if a.token == "" && a.tokenFile != "" {
+		token, err := ioutil.ReadFile(a.tokenFile)
+		if err != nil {
+			return err
+		}
+		a.token = string(token)
+	}
+
 	return nil
 }
 
