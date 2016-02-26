@@ -1,0 +1,32 @@
+---
+kind: ReplicationController
+apiVersion: v1
+metadata:
+  name: kube-alerts
+spec:
+  replicas: 1
+  selector:
+    app: kube-alerts
+    type: monitoring
+  template:
+    metadata:
+      name: kube-alerts
+      labels:
+        app: kube-alerts
+        type: monitoring
+    spec:
+      containers:
+        - name: kube-alerts
+          image: quay.io/acaleph/kube-alerts:latest
+          args:
+            - -k8s-api=https://kubernetes.default/api/v1
+            - -k8s-certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            - -k8s-token=/var/run/secrets/kubernetes.io/serviceaccount/token
+            - -kv-addresses=http://{{etcd-ip}}:{{etcd-port}}/v2
+            - -kv-backend=etcd
+            - -node-check-threshold=15
+            - -enable-slack=true
+            - -slack-cluster-name={{cluster-name}}
+            - -slack-url={{slack-url}}
+            - -slack-username=kube-alerts
+
